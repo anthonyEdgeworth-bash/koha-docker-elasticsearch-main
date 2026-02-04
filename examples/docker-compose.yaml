@@ -18,9 +18,12 @@ services:
       MEMCACHED_SERVERS: memcached:11211
       MB_HOST: rabbitmq
     depends_on:
-      - db
-      - rabbitmq
-      - memcached
+      db:
+        condition: service_healthy   # <--- CAMBIO IMPORTANTE: Espera a que el healthcheck pase
+      rabbitmq:
+        condition: service_started
+      memcached:
+        condition: service_started
 
   rabbitmq:
       image: docker.io/rabbitmq:3
@@ -40,6 +43,13 @@ services:
       MARIADB_PASSWORD: example
     networks:
       - koha
+    # AÑADIMOS ESTO: El chequeo de salud
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   memcached:
     image: docker.io/memcached
