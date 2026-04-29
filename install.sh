@@ -53,3 +53,7 @@ MI_IP=$(hostname -I | awk '{print $1}')
 echo "Intranet (Staff): http://$MI_IP:8081"
 echo "OPAC (Público):   http://$MI_IP:8080"
 echo "--- --- --- --- --- --- --- --- ---"
+
+## Conexión entre ElasticSearch Y Koha
+
+sudo docker exec -it examples-koha-1 bash -c "sed -i 's/localhost:9200/elasticsearch:9200/g' /etc/koha/sites/default/koha-conf.xml && koha-elasticsearch --rebuild --reset --delete default"
