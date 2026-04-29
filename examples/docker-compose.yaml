@@ -3,6 +3,8 @@ version: "3.9"
 services:
   koha:
     image: teogramm/koha:24.11
+    command: >
+      sh -c "sed -i 's/localhost:9200/elasticsearch:9200/g' /etc/koha/sites/default/koha-conf.xml && /init"
     ports:
       - 8080:8080
       - 8081:8081
@@ -61,16 +63,19 @@ services:
       - koha
 
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
-    environment:
-      - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-      - xpack.security.enabled=false
-    networks:
-      - koha
+      image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+      command: >
+        sh -c "bin/elasticsearch-plugin install --batch analysis-icu && 
+               /usr/local/bin/docker-entrypoint.sh elasticsearch"
+      environment:
+        - discovery.type=single-node
+        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        - xpack.security.enabled=false
+      networks:
+        - koha
 
 volumes:
-  mariadb-koha:
+ mariadb-koha:
 
 networks:
   koha:
