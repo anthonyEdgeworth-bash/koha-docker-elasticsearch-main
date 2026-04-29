@@ -44,8 +44,6 @@ services:
       DB_NAME: koha_teolib
       MEMCACHED_SERVERS: memcached:11211
       MB_HOST: rabbitmq
-      # Intentamos pasar la variable estandar
-      KOHA_ELASTICSEARCH_SERVER: http://elasticsearch:9200
       ELASTICSEARCH_SERVER: http://elasticsearch:9200
     depends_on:
       db:
@@ -56,8 +54,10 @@ services:
       - koha
 
   rabbitmq:
-    image: docker.io/rabbitmq:3
+    image: docker.io/rabbitmq:3-management
     container_name: examples-rabbitmq-1
+    command: >
+      sh -c "rabbitmq-plugins enable --offline rabbitmq_stomp && rabbitmq-server"
     networks:
       - koha
 
