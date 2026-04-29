@@ -1,44 +1,4 @@
 services:
-  koha:
-    image: teogramm/koha:24.11
-    container_name: examples-koha-1
-    ports:
-      - 8080:8080
-      - 8081:8081
-    networks:
-      - koha
-    cap_add:
-      - DAC_READ_SEARCH
-      - SYS_NICE
-    # AUTOMATIZACIÓN: Esto cambia el localhost por elasticsearch al arrancar
-    command: >
-      sh -c "sed -i 's/localhost:9200/elasticsearch:9200/g' /etc/koha/sites/default/koha-conf.xml && /init"
-    environment:
-      MYSQL_SERVER: db
-      MYSQL_USER: koha_teolib
-      MYSQL_PASSWORD: example
-      DB_NAME: koha_teolib
-      MEMCACHED_SERVERS: memcached:11211
-      MB_HOST: rabbitmq
-      ELASTICSEARCH_SERVER: http://elasticsearch:9200
-    depends_on:
-      db:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_started
-      memcached:
-        condition: service_started
-      elasticsearch:
-        condition: service_started
-
-  rabbitmq:
-    image: docker.io/rabbitmq:3
-    container_name: examples-rabbitmq-1
-    volumes:
-      - ./rabbitmq_plugins:/etc/rabbitmq/enabled_plugins
-    networks:
-      - koha
-
   db:
     image: docker.io/mariadb:11
     container_name: examples-db-1
@@ -58,16 +18,9 @@ services:
       retries: 5
       start_period: 30s
 
-  memcached:
-    image: docker.io/memcached
-    container_name: examples-memcached-1
-    networks:
-      - koha
-
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
     container_name: examples-elasticsearch-1
-    # AUTOMATIZACIÓN: Instala el plugin ICU automáticamente
     command: >
       sh -c "bin/elasticsearch-plugin install --batch analysis-icu && 
              /usr/local/bin/docker-entrypoint.sh elasticsearch"
@@ -75,6 +28,42 @@ services:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - xpack.security.enabled=false
+    networks:
+      - koha
+
+  koha:
+    image: teogramm/koha:24.11
+    container_name: examples-koha-1
+    ports:
+      - 8080:8080
+      - 8081:8081
+    environment:
+      MYSQL_SERVER: db
+      MYSQL_USER: koha_teolib
+      MYSQL_PASSWORD: example
+      DB_NAME: koha_teolib
+      MEMCACHED_SERVERS: memcached:11211
+      MB_HOST: rabbitmq
+      # Intentamos pasar la variable estandar
+      KOHA_ELASTICSEARCH_SERVER: http://elasticsearch:9200
+      ELASTICSEARCH_SERVER: http://elasticsearch:9200
+    depends_on:
+      db:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+    networks:
+      - koha
+
+  rabbitmq:
+    image: docker.io/rabbitmq:3
+    container_name: examples-rabbitmq-1
+    networks:
+      - koha
+
+  memcached:
+    image: docker.io/memcached
+    container_name: examples-memcached-1
     networks:
       - koha
 
