@@ -1,4 +1,5 @@
 version: "3.9"
+
 services:
   koha:
     image: teogramm/koha:24.11
@@ -17,20 +18,24 @@ services:
       DB_NAME: koha_teolib
       MEMCACHED_SERVERS: memcached:11211
       MB_HOST: rabbitmq
+      # Esta variable DEBE ir dentro de la sección environment de koha
+      ELASTICSEARCH_SERVER: http://elasticsearch:9200
     depends_on:
       db:
-        condition: service_healthy   # <--- CAMBIO IMPORTANTE: Espera a que el healthcheck pase
+        condition: service_healthy
       rabbitmq:
         condition: service_started
       memcached:
         condition: service_started
+      elasticsearch:
+        condition: service_started
 
   rabbitmq:
-      image: docker.io/rabbitmq:3
-      volumes:
-        - ./rabbitmq_plugins:/etc/rabbitmq/enabled_plugins
-      networks:
-        - koha
+    image: docker.io/rabbitmq:3
+    volumes:
+      - ./rabbitmq_plugins:/etc/rabbitmq/enabled_plugins
+    networks:
+      - koha
 
   db:
     image: docker.io/mariadb:11
@@ -43,7 +48,6 @@ services:
       MARIADB_PASSWORD: example
     networks:
       - koha
-    # AÑADIMOS ESTO: El chequeo de salud
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 10s
@@ -56,8 +60,17 @@ services:
     networks:
       - koha
 
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    networks:
+      - koha
+
 volumes:
-    mariadb-koha:
+  mariadb-koha:
 
 networks:
-    koha:
+  koha:
