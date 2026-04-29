@@ -1,10 +1,7 @@
-version: "3.9"
-
 services:
   koha:
     image: teogramm/koha:24.11
-    command: >
-      sh -c "sed -i 's/localhost:9200/elasticsearch:9200/g' /etc/koha/sites/default/koha-conf.xml && /init"
+    container_name: examples-koha-1
     ports:
       - 8080:8080
       - 8081:8081
@@ -13,6 +10,9 @@ services:
     cap_add:
       - DAC_READ_SEARCH
       - SYS_NICE
+    # AUTOMATIZACIÓN: Esto cambia el localhost por elasticsearch al arrancar
+    command: >
+      sh -c "sed -i 's/localhost:9200/elasticsearch:9200/g' /etc/koha/sites/default/koha-conf.xml && /init"
     environment:
       MYSQL_SERVER: db
       MYSQL_USER: koha_teolib
@@ -20,7 +20,6 @@ services:
       DB_NAME: koha_teolib
       MEMCACHED_SERVERS: memcached:11211
       MB_HOST: rabbitmq
-      # Esta variable DEBE ir dentro de la sección environment de koha
       ELASTICSEARCH_SERVER: http://elasticsearch:9200
     depends_on:
       db:
@@ -34,6 +33,7 @@ services:
 
   rabbitmq:
     image: docker.io/rabbitmq:3
+    container_name: examples-rabbitmq-1
     volumes:
       - ./rabbitmq_plugins:/etc/rabbitmq/enabled_plugins
     networks:
@@ -41,6 +41,7 @@ services:
 
   db:
     image: docker.io/mariadb:11
+    container_name: examples-db-1
     volumes:
       - mariadb-koha:/var/lib/mysql
     environment:
@@ -59,23 +60,26 @@ services:
 
   memcached:
     image: docker.io/memcached
+    container_name: examples-memcached-1
     networks:
       - koha
 
   elasticsearch:
-      image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
-      command: >
-        sh -c "bin/elasticsearch-plugin install --batch analysis-icu && 
-               /usr/local/bin/docker-entrypoint.sh elasticsearch"
-      environment:
-        - discovery.type=single-node
-        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-        - xpack.security.enabled=false
-      networks:
-        - koha
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: examples-elasticsearch-1
+    # AUTOMATIZACIÓN: Instala el plugin ICU automáticamente
+    command: >
+      sh -c "bin/elasticsearch-plugin install --batch analysis-icu && 
+             /usr/local/bin/docker-entrypoint.sh elasticsearch"
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    networks:
+      - koha
 
 volumes:
- mariadb-koha:
+  mariadb-koha:
 
 networks:
   koha:
